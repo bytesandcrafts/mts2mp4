@@ -10,13 +10,22 @@ public class Program
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed<Options>(o =>
             {
-                ProcessDirectory(new DirectoryInfo(o.InputFolder), new DirectoryInfo(o.OutputFolder));
+                var filesToProcess = new List<FilePair>();
+                ProcessDirectory(o.InputFolder, o.OutputFolder, filesToProcess);
+
+                for (var i = 0; i < filesToProcess.Count; i++)
+                {
+                    var filePair = filesToProcess[i];
+                    Directory.CreateDirectory(Path.GetDirectoryName(filePair.OutputFile));
+                    
+                    Console.WriteLine($"{i} of {filesToProcess.Count} Processing file {filePair.InputFile} into {filePair.OutputFile}");
+                    ProcessFile(filePair.InputFile, filePair.OutputFile);
+                }
             });
     }
 
     public static void ProcessFile(string sourceFileName, string destinationFileName)
     {
-        Console.WriteLine($"Processing file {sourceFileName} into {destinationFileName}");
         if (File.Exists(destinationFileName))
             File.Delete(destinationFileName);
         
@@ -31,26 +40,27 @@ public class Program
         }
     }
     
-    public static void ProcessDirectory(DirectoryInfo source, DirectoryInfo target)
+    public static void ProcessDirectory(string source, string target, List<FilePair> filesToProcess)
     {
-        // Check if the target directory exists, if not, create it
-        if (!Directory.Exists(target.FullName))
+        // Collect files to process
+        foreach (var fi in Directory.GetFiles(source))
         {
-            Directory.CreateDirectory(target.FullName);
-        }
-
-        // Process each file
-        foreach (var fi in source.GetFiles())
-        {
-            var targetFileName = Path.Combine(target.FullName, fi.Name);
-            ProcessFile(fi.FullName, targetFileName);
+            if (Path.GetExtension(fi).ToLower() == ".mts")
+            {
+                var targetFileName = Path.Combine(target, Path.GetFileNameWithoutExtension(fi) + ".mp4");
+                filesToProcess.Add(new FilePair()
+                {
+                    InputFile = fi,
+                    OutputFile = targetFileName
+                });
+            }
         }
 
         // Process each subdirectory using recursion
-        foreach (DirectoryInfo sourceSubDir in source.GetDirectories())
+        foreach (var sourceSubDir in Directory.GetDirectories(source))
         {
-            var nextTargetSubDir = target.CreateSubdirectory(sourceSubDir.Name);
-            ProcessDirectory(sourceSubDir, nextTargetSubDir);
+            var nextTargetSubDir = Path.Combine(target, Path.GetFileName(sourceSubDir));
+            ProcessDirectory(sourceSubDir, nextTargetSubDir, filesToProcess);
         }
     }
 
