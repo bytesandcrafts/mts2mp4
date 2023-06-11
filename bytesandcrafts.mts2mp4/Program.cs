@@ -84,7 +84,7 @@ public class Program
         var startInfo = new ProcessStartInfo();
         startInfo.FileName = "ffmpeg";
         startInfo.Arguments =
-            $@"-i ""{sourceFileName}"" -c:v libx265 -preset fast -crf 28 -tag:v hvc1 -c:a eac3 -b:a 224k ""{destinationFileName}""";
+            $@"-i ""{sourceFileName}"" -c:v copy -c:a aac -strict experimental -b:a 256k ""{destinationFileName}""";
         
         startInfo.CreateNoWindow = true;
         startInfo.UseShellExecute = false;
